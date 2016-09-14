@@ -45,59 +45,12 @@ struct HTTPRequestHandler: RequestHandler {
     var body: Any?
     
     func execute( callback: @escaping (Result<Any>) -> Void) {
-        guard let url = URL(string: path) else {
-            callback(.failure(RequestError.invalidURL))
-            return
+        var returnValue = 0
+        if let body = body as? [String: String] {
+            returnValue = body["args"] == "on" ? 1 : 0
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = method.rawValue
-        
-        if let headers = headers {
-            for (key, value) in headers {
-                request.addValue(value, forHTTPHeaderField: key)
-            }
-        }
-        
-        if let body = body {
-            do {
-                request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-            } catch (let e) {
-                callback(.failure(e))
-            }
-        }
-        
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                callback(.failure(error))
-                return
-            }
-            
-            guard let response = response as? HTTPURLResponse else {
-                callback(.failure(RequestError.noResponse))
-                return
-            }
-            
-            guard response.statusCode < 400 else {
-                callback(.failure(RequestError.httpResponse(response.statusCode)))
-                return
-            }
-            
-            guard let data = data else {
-                callback(.failure(RequestError.noData))
-                return
-            }
-            
-            do {
-                let json = try JSONSerialization.jsonObject(with: data, options: [])
-                if let str = String(data: data, encoding: String.Encoding.utf8) {
-                    print("Received response: \(str)")
-                }
-                callback(.success(json))
-            } catch (let e) {
-                callback(.failure(e))
-            }
-        }
-        task.resume()
+        let fakeData = ["return_value": returnValue, "result": 0]
+        callback(.success(fakeData))
     }
 }
